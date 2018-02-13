@@ -9,11 +9,12 @@ import (
   "io/ioutil"
   "os"
   "path/filepath"
-  "regexp"
   "strings"
 
   pngquant "github.com/yusukebe/go-pngquant"
   "github.com/nickalie/go-mozjpegbin"
+
+  "github.com/aprimadi/imagecomp/options"
 )
 
 func optimizePNG(path string) bool {
@@ -108,35 +109,52 @@ func optimizeJPEG(path string) bool {
   return true
 }
 
-func main() {
-  re, err := regexp.Compile("\\/original\\/")
-  if err != nil {
-    panic(err)
+func matchingPath(matchers []options.PathMatcher, path string) bool {
+  value := true
+  for i := 0; i < len(matchers); i++ {
+    matcher := matchers[i]
+    if matcher.Type == "include" {
+      if matcher.Pattern.Match(path) {
+        value = true
+      }
+    } else {
+      if matcher.Pattern.Match(path) {
+        value = false
+      }
+    }
   }
+  return value
+}
 
-  filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-    if err != nil {
-      panic(err)
-    }
-    if re.Find([]byte(path)) != nil {
-      // fmt.Println(fmt.Sprintf("Skipping %s", path))
-      return nil
-    }
+func main() {
+  args := os.Args[1:]
+  opts := options.ParseArgs(args)
 
-    if info.IsDir() {
-      return nil
-    }
-    ext := strings.ToLower(filepath.Ext(info.Name()))
-    if ext == ".png" || ext == ".jpg" || ext == ".jpeg" {
-      success := optimizePNG(path)
-      if !success {
-        success = optimizeJPEG(path)
+  for i := 0; i < len(opts.Directories); i++ {
+    dir := opts.Directories[i]
+    filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+      if err != nil {
+        panic(err)
+      }
+      if !matchingPath(opts.PathMatchers, path) {
+        return nil
       }
 
-      if !success {
-        fmt.Println(fmt.Sprintf("Skipping %s: Unknown file format", path))
+      if info.IsDir() {
+        return nil
       }
-    }
-    return nil
-  })
+      ext := strings.ToLower(filepath.Ext(info.Name()))
+      if ext == ".png" || ext == ".jpg" || ext == ".jpeg" {
+        success := optimizePNG(path)
+        if !success {
+          success = optimizeJPEG(path)
+        }
+
+        if !success {
+          fmt.Println(fmt.Sprintf("Skipping %s: Unknown file format", path))
+        }
+      }
+      return nil
+    })
+  }
 }
