@@ -13,6 +13,7 @@ import (
 
   pngquant "github.com/yusukebe/go-pngquant"
   "github.com/nickalie/go-mozjpegbin"
+  "github.com/ryanuber/go-glob"
 
   "github.com/aprimadi/imagecomp/options"
 )
@@ -114,11 +115,11 @@ func matchingPath(matchers []options.PathMatcher, path string) bool {
   for i := 0; i < len(matchers); i++ {
     matcher := matchers[i]
     if matcher.Type == "include" {
-      if matcher.Pattern.Match(path) {
+      if glob.Glob(matcher.Pattern, path) {
         value = true
       }
     } else {
-      if matcher.Pattern.Match(path) {
+      if glob.Glob(matcher.Pattern, path) {
         value = false
       }
     }

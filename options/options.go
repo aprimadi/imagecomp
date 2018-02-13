@@ -3,13 +3,11 @@ package options
 import (
   "fmt"
   "os"
-
-  "github.com/gobwas/glob"
 )
 
 type PathMatcher struct {
   Type string // 'include' or 'exclude'
-  Pattern glob.Glob
+  Pattern string
 }
 
 type Options struct {
@@ -31,9 +29,9 @@ func ParseArgs(args []string) *Options {
       value := args[i+1]
       var pm PathMatcher
       if arg == "-include" {
-        pm = PathMatcher{ Type: "include", Pattern: glob.MustCompile(value) }
+        pm = PathMatcher{ Type: "include", Pattern: value }
       } else {
-        pm = PathMatcher{ Type: "exclude", Pattern: glob.MustCompile(value) }
+        pm = PathMatcher{ Type: "exclude", Pattern: value }
       }
       options.PathMatchers = append(options.PathMatchers, pm)
       i++
